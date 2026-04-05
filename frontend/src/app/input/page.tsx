@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import DynamicRenderer from '@/components/DynamicRenderer';
 
 export default function InputPage() {
@@ -8,7 +8,18 @@ export default function InputPage() {
   const [uiData, setUiData] = useState<any>(null);
   const [error, setError] = useState('');
   const [useAi, setUseAi] = useState(false);
+  const [username, setUsername] = useState<string | null>(null);
   const [loadingDelayed, setLoadingDelayed] = useState(false);
+
+  useEffect(() => {
+    setUsername(localStorage.getItem('username'));
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('username');
+    window.location.href = '/auth';
+  };
 
   const handleTransform = async () => {
     if (!text.trim()) {
@@ -30,7 +41,8 @@ export default function InputPage() {
     }, 10000);
     
     try {
-      const response = await fetch('http://localhost:8080/api/content/transform', {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiBaseUrl}/api/content/transform`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: text, useAi })
@@ -79,21 +91,45 @@ export default function InputPage() {
 
         {/* Right Column: Output Area */}
         <div className="flex flex-col bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 min-h-[60vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4 border-b dark:border-gray-700 pb-2">
-            <h2 className="text-2xl font-bold dark:text-white">AI UI Preview Mode</h2>
-            <div className="flex bg-gray-100 dark:bg-gray-900 rounded-full p-1 border border-gray-200 dark:border-gray-700">
-              <button 
-                onClick={() => setUseAi(false)}
-                className={`px-4 py-1 text-sm font-semibold rounded-full transition ${!useAi ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-gray-100' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-              >
-                Mock Mode
-              </button>
-              <button 
-                onClick={() => setUseAi(true)}
-                className={`px-4 py-1 text-sm font-semibold rounded-full transition flex items-center gap-1 ${useAi ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
-              >
-                AI Mode <span className="text-xs">✨</span>
-              </button>
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white">AI UI Preview Mode</h2>
+            <div className="flex items-center gap-4">
+              {username && (
+                <div className="flex items-center gap-2 px-3 py-1 bg-gray-100 dark:bg-gray-800 rounded-full border border-gray-200 dark:border-gray-700">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                  <span className="text-xs font-bold text-gray-600 dark:text-gray-400 tracking-tight">{username}</span>
+                </div>
+              )}
+              <div className="flex p-1 bg-gray-100 dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+                <button
+                  onClick={() => setUseAi(false)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    !useAi 
+                      ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' 
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  Mock Mode
+                </button>
+                <button
+                  onClick={() => setUseAi(true)}
+                  className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                    useAi 
+                      ? 'bg-blue-600 text-white shadow-md' 
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                  }`}
+                >
+                  AI Mode ✨
+                </button>
+              </div>
+              {username && (
+                <button 
+                  onClick={handleLogout}
+                  className="text-xs font-bold text-red-500 hover:text-red-600 transition-colors uppercase tracking-widest pl-2 border-l border-gray-200 dark:border-gray-700"
+                >
+                  Logout
+                </button>
+              )}
             </div>
           </div>
           

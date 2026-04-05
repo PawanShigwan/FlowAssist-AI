@@ -1,9 +1,55 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+    setLoading(true);
+
+    const endpoint = isLogin ? '/auth/login' : '/auth/register';
+    const payload = isLogin 
+      ? { email, password } 
+      : { username, email, password };
+
+    try {
+      const apiBaseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+      const response = await fetch(`${apiBaseUrl}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const msg = await response.text();
+        throw new Error(msg || "Authentication failed");
+      }
+
+      if (isLogin) {
+        const data = await response.json();
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('username', data.username);
+        window.location.href = '/input';
+      } else {
+        setSuccess('Registration successful! Please login.');
+        setIsLogin(true);
+      }
+    } catch (err: any) {
+      setError(err.message || 'Error occurred during authentication');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
@@ -17,36 +63,72 @@ export default function AuthPage() {
           <p className="text-gray-500 dark:text-gray-400 mt-2">{isLogin ? 'Welcome back' : 'Create an account'}</p>
         </div>
 
-        <form className="space-y-5" onSubmit={(e) => { e.preventDefault(); window.location.href = '/input'; }}>
-          
+        {error && (
+            <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm">
+                {error}
+            </div>
+        )}
+
+        {success && (
+            <div className="mb-6 p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl text-green-600 dark:text-green-400 text-sm">
+                {success}
+            </div>
+        )}
+
+        <form className="space-y-5" onSubmit={handleSubmit}>
           {!isLogin && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Full Name</label>
-              <input type="text" required className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-white" placeholder="John Doe" />
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Username</label>
+              <input 
+                type="text" 
+                required 
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-white" 
+                placeholder="testuser01" 
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
             </div>
           )}
           
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
-            <input type="email" required className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-white" placeholder="you@example.com" />
+            <input 
+              type="email" 
+              required 
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-white" 
+              placeholder="you@example.com" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
           </div>
           
           <div>
             <div className="flex justify-between mb-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Password</label>
-              {isLogin && <a href="#" className="text-sm font-medium text-blue-600 dark:text-blue-400 hover:underline">Forgot password?</a>}
             </div>
-            <input type="password" required className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-white" placeholder="••••••••" />
+            <input 
+              type="password" 
+              required 
+              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all dark:text-white" 
+              placeholder="••••••••" 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
           </div>
 
-          <button type="submit" className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all">
+          <button 
+            type="submit" 
+            disabled={loading}
+            className="w-full py-3.5 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-semibold rounded-xl shadow-md focus:outline-none transition-all flex justify-center items-center gap-2"
+          >
+            {loading && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>}
             {isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
         <div className="mt-8 text-center text-sm text-gray-600 dark:text-gray-400">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button onClick={() => setIsLogin(!isLogin)} className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
+          <button onClick={() => { setIsLogin(!isLogin); setError(''); setSuccess(''); }} className="font-semibold text-blue-600 hover:text-blue-500 transition-colors">
             {isLogin ? 'Sign up' : 'Sign in'}
           </button>
         </div>
@@ -61,3 +143,4 @@ export default function AuthPage() {
     </div>
   );
 }
+

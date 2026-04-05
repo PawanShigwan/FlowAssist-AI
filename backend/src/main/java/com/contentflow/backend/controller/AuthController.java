@@ -24,10 +24,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody Map<String, String> loginRequest) {
-        String username = loginRequest.get("username");
+        String identifier = loginRequest.get("username") != null ? loginRequest.get("username") : loginRequest.get("email");
         String password = loginRequest.get("password");
 
-        User user = userRepository.findByUsername(username);
+        User user = userRepository.findByUsername(identifier);
+        if (user == null) {
+            user = userRepository.findByEmail(identifier);
+        }
         
         if (user == null || !user.getPassword().equals(password)) {
             return ResponseEntity.badRequest().body("Error: Invalid credentials");
@@ -38,6 +41,7 @@ public class AuthController {
         Map<String, String> response = new HashMap<>();
         response.put("token", jwt);
         response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
         return ResponseEntity.ok(response);
     }
 
